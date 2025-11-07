@@ -44,7 +44,7 @@ class ProductSeeder extends Seeder
             'name' => 'Thể thao',
             'brand' => 'Ronaldo',
             'color' => 'trắng',
-            'price' => $faker->numberBetween(10000000, 100000000),
+            'price' => 9999,
             'description' => 'Trong phần cuối cuộc trò chuyện với MC Piers Morgan, Cristiano Ronaldo nói về lý do không dự đám tang của Diogo Jota, bất bình vì Quả Bóng Vàng không ghi nhận giải Saudi Pro League, quan điểm về cầu thủ hay nhất lịch sử và so sánh vẻ đẹp trai với David Beckham.',
         ]);
 

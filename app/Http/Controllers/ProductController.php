@@ -16,58 +16,62 @@ class ProductController extends Controller
         $this->es = $es;
     }
 
-    public function seed()
+    public function destroy()
+    {
+            $client = app('elasticsearch');
+
+            $client->indices()->delete(['index' => 'dev']);
+            return response()->json([
+                'message' => 'Đã xóa index products',
+            ]);
+    }
+
+
+    public function search(Request $request)
     {
         try {
             if (!$this->es->ping()) {
                 return response()->json([
                     'error' => 'Elasticsearch không khả dụng',
-                    'message' => 'Vui lòng đảm bảo Elasticsearch đang chạy tại '.config('elasticsearch.host'),
-                    'hint' => 'Chạy: docker compose up -d',
-                ], 503);
-            }
-
-           $data = Product::all();
-
-            DB::beginTransaction();
-            foreach ($data as $product) {
-                $this->es->index([
-                    'index' => 'products',
-                    'id' => $product->id,
-                    'body' => $product->toArray(),
-                ]);
-            }
-            DB::commit();
-            return response()->json(['message' => 'Đã tạo và index 3 sản phẩm mẫu!']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'error' => 'Lỗi khi seed dữ liệu',
-                'message' => $e->getMessage(),
-                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
-            ], 500);
-        }
-    }
-
-    public function search(Request $request)
-    {
-        try {
-            if (! $this->es->ping()) {
-                return response()->json([
-                    'error' => 'Elasticsearch không khả dụng',
-                    'message' => 'Vui lòng đảm bảo Elasticsearch đang chạy tại '.config('elasticsearch.host'),
+                    'message' => 'Vui lòng đảm bảo Elasticsearch đang chạy tại ' . config('elasticsearch.host'),
                 ], 503);
             }
 
             $query = $request->get('q', '');
 
+            $page = max(1, (int) $request->input('page', 1)); // trang hiện tại
+            $size = (int) $request->input('size', 10);        // số kết quả / trang
+            $from = ($page - 1) * $size;
+
             $params = [
-                'index' => 'products',
-                'body' => [
+                'index' => Product::INDEX_NAME,
+                'body'  => [
+                    'from' => $from,
+                    'size' => $size,    
                     'query' => [
-                        'multi_match' => [
-                            'query' => $query,
-                            'fields' => ['name', 'brand', 'description'],
+                    //       'multi_match' => [
+                    //     'query' => $query,
+                    //     'fields' => ['title', 'content']
+                    // ]
+                        'bool' => [
+                            'should' => [
+                                // Full-text search (phân tích ngữ nghĩa)
+                                [
+                                    'multi_match' => [
+                                        'query'  => $query,
+                                        'fields' => ['name', 'brand', 'color', 'description'],
+                                        'fuzziness' => 'AUTO', // cho phép sai chính tả nhẹ
+                                    ],
+                                ],
+                                // Partial search (tìm chứa từ)
+                                [
+                                    'query_string' => [
+                                        'query'  => "*$query*",
+                                        'fields' => ['name', 'brand', 'color', 'description'],
+                                        'analyze_wildcard' => true,
+                                    ],
+                                ],
+                            ],
                         ],
                     ],
                 ],

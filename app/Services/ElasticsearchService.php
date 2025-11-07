@@ -18,7 +18,7 @@ class ElasticsearchService
             $parsed = parse_url($host);
             $parsedHost = $parsed['host'];
             if (isset($parsed['port'])) {
-                $parsedHost .= ':'.$parsed['port'];
+                $parsedHost .= ':' . $parsed['port'];
             } else {
                 $parsedHost .= ':9200';
             }
@@ -60,4 +60,10 @@ class ElasticsearchService
             return false;
         }
     }
+
+    public function indices()
+    {
+        return $this->client->indices();
+    }
+
 }
